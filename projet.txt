@@ -1,0 +1,860 @@
+1/ changer le hostname poure les 4 machines
+pour la machine ansible root# hostnamectl set-hostname ansible
+pour la machine master root# hostnamectl set-hostname master
+pour la machine worker1 root# hostnamectl set-hostname worker1
+pour la machine worker2 root# hostnamectl set-hostname worker2
+                  __ _                       _   _
+  ___ ___  _ __  / _(_) __ _ _   _ _ __ __ _| |_(_) ___  _ __
+ / __/ _ \| '_ \| |_| |/ _` | | | | '__/ _` | __| |/ _ \| '_ \
+| (_| (_) | | | |  _| | (_| | |_| | | | (_| | |_| | (_) | | | |
+ \___\___/|_| |_|_| |_|\__, |\__,_|_|  \__,_|\__|_|\___/|_| |_|
+                       |___/
+ ____  _   _ ____
+|  _ \| \ | / ___|
+| | | |  \| \___ \
+| |_| | |\  |___) |
+|____/|_| \_|____/
+
+
+----------------------------coniguration DNS les 4 machines-------------------
+root# vi /etc/hosts
+127.0.0.1 localhost
+127.0.1.1 root
+
+10.20.206.59  ansible
+10.20.206.62   Master
+10.20.206.60  worker1
+10.20.206.64  worker2
+
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+                 __ _                       _   _
+  ___ ___  _ __  / _(_) __ _ _   _ _ __ __ _| |_(_) ___  _ __
+ / __/ _ \| '_ \| |_| |/ _` | | | | '__/ _` | __| |/ _ \| '_ \
+| (_| (_) | | | |  _| | (_| | |_| | | | (_| | |_| | (_) | | | |
+ \___\___/|_| |_|_| |_|\__, |\__,_|_|  \__,_|\__|_|\___/|_| |_|
+                       |___/
+ ____ ____  _   _
+/ ___/ ___|| | | |
+\___ \___ \| |_| |
+ ___) |__) |  _  |
+|____/____/|_| |_|
+
+----------------------------------creation de clef SSH dans la machine ansible-------------------------
+root@ansible#ssh-keygen                       //entree entree entree sans faire un mot de pass
+------------------------------configuration de SSH--------------------------------------------
+root@ansible# cd .ssh
+root@ansible# touch config
+root@ansible# vi config
+Host Master
+    User dba
+    Port 22
+    IdentityFile ~/.ssh/id_rsa
+    LogLevel INFO
+    Compression yes
+    ForwardAgent yes
+    ForwardX11 yes
+Host worker1
+    User dba
+    Port 22
+    IdentityFile ~/.ssh/id_rsa
+    LogLevel INFO
+    Compression yes
+    ForwardAgent yes
+    ForwardX11 yes
+Host worker2
+    User dba
+    Port 22
+    IdentityFile ~/.ssh/id_rsa
+    LogLevel INFO
+    Compression yes
+    ForwardAgent yes
+    ForwardX11 yes
+-------------------------------embarquer la clef ssh-----------------------------
+root@ansible# eval `ssh-agent
+root@ansible# ssh-add
+----------------------------------copie SSH dans les autres machines -------------------------
+root@ansible# ssh-copy-id master
+yes
+taper le passwd de master
+
+root@ansible# ssh-copy-id worker1
+yes
+taper le passwd de worker1
+
+root@ansible# ssh-copy-id worker2
+yes
+taper le passwd de worker2
+-------------------------------embarquer la clef ssh-----------------------------
+root@ansible# eval `ssh-agent
+root@ansible# ssh-add
+(_)_ __  ___| |_ __ _| | | __ _| |_(_) ___  _ __
+| | '_ \/ __| __/ _` | | |/ _` | __| |/ _ \| '_ \
+| | | | \__ \ || (_| | | | (_| | |_| | (_) | | | |
+|_|_| |_|___/\__\__,_|_|_|\__,_|\__|_|\___/|_| |_|
+
+                 _ _     _
+  __ _ _ __  ___(_) |__ | | ___
+ / _` | '_ \/ __| | '_ \| |/ _ \
+| (_| | | | \__ \ | |_) | |  __/
+ \__,_|_| |_|___/_|_.__/|_|\___|
+
+------------------------------instalation d'ansible sur la machine ansible----------------
+root@ansible# apt-add-repository --yes --update ppa:ansible/ansible
+root@ansible# apt update
+root@ansible# apt install -yqq ansible
+root@ansible# ansible-config init --disabled > /etc/ansible/ansible.cfg
+--------------------configuration ansible -----------------------------------------
+root@ansible# touch ansible.config
+root@ansible# vi ansible.cfg
+[defaults]
+host_key_checking = False
+callback_whitelist = timer, profile_tasks
+forks = 30
+timeout = 100
+inventory       = /root/hosts
+deprecation_warnings=False
+[ssh_connection]
+pipelining = True
+ssh_args = -o ControlMaster=auto -o ControlPersist=60s -o PreferredAuthentications=publickey
+-----------------------------creation hosts dans la machine ansible-------------------------------
+root@ansible# touch hosts
+root@ansible# vi hosts       
+ansible ansible_host=10.20.206.71 ansible_connection=local
+Master  ansible_host=10.20.206.117
+worker1 ansible_host=10.20.206.112
+worker2 ansible_host=10.20.206.114
+[cible]
+master
+worker1
+worker2
+
+ 
+
+[all:vars]
+ansible_port=22
+ansible_user=dba
+ansible_connection=ssh
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+ansible_ssh_common_args='-o StrictHostKeyChecking=no
+-------------------------------------------------test ping-----------------------------------
+root@ansible#ansible all -m ping
+root@ansible# ansible cible -m ping
+root@ansible# ansible -i hosts cible -m ping
+
+|  _ \ _ __ _____   _(_)___(_) ___  _ __  _ __   ___ _ __ ___   ___ _ __ | |_
+| |_) | '__/ _ \ \ / / / __| |/ _ \| '_ \| '_ \ / _ \ '_ ` _ \ / _ \ '_ \| __|
+|  __/| | | (_) \ V /| \__ \ | (_) | | | | | | |  __/ | | | | |  __/ | | | |_
+|_|   |_|  \___/ \_/ |_|___/_|\___/|_| |_|_| |_|\___|_| |_| |_|\___|_| |_|\__|
+
+     _              _           _
+  __| |_   _    ___| |_   _ ___| |_ ___ _ __
+ / _` | | | |  / __| | | | / __| __/ _ \ '__|
+| (_| | |_| | | (__| | |_| \__ \ ||  __/ |
+ \__,_|\__,_|  \___|_|\__,_|___/\__\___|_|
+---------------------------python3-pip----------------------------
+root@ansible# sudo apt install python3-pip
+root@ansible# sudo pip3 install -upgrade pip
+root@ansible# pip --version 
+root@ansible# git clone https://github.com/kubernetes-sigs/kubespray.git
+root@ansible#cd kubespray
+root@ansible /kubespray# sudo pip install requirements.txt
+root@ansible /kubespray# pip3 install -r requirements.txt
+
+root@ansible /kubespray/inventory/sample# cd
+root@ansible# vi ansible.cfg
+[defaults]
+host_key_checking = False
+callback_whitelist = timer, profile_tasks
+forks = 30
+timeout = 100
+inventory       = /root/hosts
+deprecation_warnings=False
+[ssh_connection]
+pipelining = True
+ssh_args = -o ControlMaster=auto -o ControlPersist=60s -o PreferredAuthentications=publickey
+[privilege_escalation]
+become=True
+become_method=sudo
+become_user=root
+become_ask_pass=False
+root@ansible #  touch prerequis_k8s_nodes.yml
+root@ansible #  vi prerequis_k8s_nodes.yml
+---
+- hosts: all
+  become: True
+  tasks:
+  - ansible.posix.sysctl:
+      name: net.ipv4.ip_forward
+      value: '1'
+      sysctl_set: true
+      state: present
+      reload: true
+      
+  - name: Remove swapfile from /etc/fstab
+    mount:
+      name: "{{ item }}"
+      fstype: swap
+      state: absent
+    with_items:
+      - swap
+:wq
+---------------------ajouter ton user dba au group de sudo q conecte sans passwd---------
+----------------------regarder le word capture d'écran--------------------------
+root@ansible # vi /etc/sudoers 
+            dba ALL=(ALL) NOPASSWD:ALL
+:qw!
+root@ansible # ansible-playbook -i hosts prerequis_k8s_nodes.yml --syntax-check
+root@ansible # ansible-playbook -i hosts prerequis_k8s_nodes.yml --check
+root@ansible # ansible-playbook -i hosts prerequis_k8s_nodes.yml
+root@ansible# cd /kubespray/inventory/sample
+root@ansible /kubespray# cp -rfp inventory/sample inventory/mycluster
+root@ansible /kubespray# declare -a IPS=(10.20.206.60 10.20.206.61 10.20.206.62)
+root@ansible /kubespray# CONFIG_FILE=inventory/mycluster/hosts.yaml python3 contrib/inventory_builder/inventory.py ${IPS[@]}
+root@ansible /kubespray# vi inventory/mycluster/hosts.yaml  #changer le comme ça
+root@ansible /kubespray# cat inventory/mycluster/group_var/all/all/hosts.yml
+all:
+  hosts:
+    node1:
+      ansible_host: 10.20.206.60
+      ip: 10.20.206.60
+      access_ip: 10.20.206.60
+    node2:
+      ansible_host: 10.20.206.61
+      ip: 10.20.206.61
+      access_ip: 10.20.206.61
+    node3:
+      ansible_host: 10.20.206.62
+      ip: 10.20.206.62
+      access_ip: 10.20.206.62
+  children:
+    kube_control_plane:
+      hosts:
+        node1:
+    kube_node:
+      hosts:
+        node1:
+        node2:
+        node3:
+    etcd:
+      hosts:
+        node1:
+    k8s_cluster:
+      children:
+        kube_control_plane:
+        kube_node:
+    calico_rr:
+      hosts: {}
+-----------------------------------------------------------------
+root@ansible /kubespray# vi inventory/mycluster/hosts.yaml  #changer le comme ça
+all:
+  hosts:
+    node1:
+      ansible_host: 10.20.206.60
+      ip: 10.20.206.60
+      access_ip: 10.20.206.60
+	  ansible_user: dba
+	  ansible_connection: ssh
+	  ansible_port: 22
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa
+    node2:
+      ansible_host: 10.20.206.61
+      ip: 10.20.206.61
+      access_ip: 10.20.206.61
+	  ansible_user: dba
+	  ansible_connection: ssh
+	  ansible_port: 22
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa
+    node3:
+      ansible_host: 10.20.206.62
+      ip: 10.20.206.62
+      access_ip: 10.20.206.62
+	  ansible_user: dba
+	  ansible_connection: ssh
+	  ansible_port: 22
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa
+  children:
+    kube_control_plane:
+      hosts:
+        node1:
+    kube_node:
+      hosts:
+        node2:
+        node3:
+    etcd:
+      hosts:
+        node1:
+    k8s_cluster:
+      children:
+        kube_control_plane:
+        kube_node:
+    calico_rr:
+      hosts: {}
+:wq!
+---------------------------------------------------------------------
+root@ansible /kubespray# cat inventory/mycluster/group_var/all/all/hosts.yml
+root@ansible /kubespray# cat inventory/mycluster/group_var/Kbs-cluster/Kbs-cluster.yml 
+root@ansible /kubespray# ansible-playbook -i inventory/mycluster/hosts.yml --become --become-user=root cluster.yml
+root@ansible /kubespray# cd ..
+
+_          _               _   _
+| | ___   _| |__   ___  ___| |_| |
+| |/ / | | | '_ \ / _ \/ __| __| |
+|   <| |_| | |_) |  __/ (__| |_| |
+|_|\_\\__,_|_.__/ \___|\___|\__|_|
+
+
+root@ansible# curl -sLS https://get.arkade.dev | sudo sh
+root@ansible# arkade get kubectl
+root@ansible# export PATH=$PATH:$HOME/.arkade/bin
+root@ansible# echo "export PATH=$PATH:$HOME/.arkade/bin" >> ~/.bashrc
+root@ansible# sudo mv ~/.arkade/bin/kubectl /usr/local/bin/
+root@ansible#  source ~/.bashrc
+-------------------------------sur le master copie le fichier /etc/kubernetes/admin.conf--------
+root@master # cat /etc/kubernetes/admin.conf
+------------------------------- copie le fichier sur la machine ansible --------------------------------------
+root@ansible# mkdir .kube
+root@ansible# touch ansible config 
+copie le fichier ici et chager l'adresse ip en mettant l'adresse ip de master 
+regarder le word 
+root@ansible# kubectl --version
+capture d'ecran word 
+root@ansible#  sudo apt-get install bash-completion
+root@ansible# source /usr/share/bash-completion/bash_completion
+root@ansible# source <(kubectl completion bash)
+root@ansible# echo "source <(kubectl completion bash)" >> ~/.bashrc
+root@ansible#  alias kc='kubectl
+root@ansible#  complete -o default -F __start_kubectl k
+root@ansible#  alias kcc='kubectl config current-context'
+root@ansible#   alias kg='kubectl get'
+root@ansible#  alias kga='kubectl get all --all-namespaces'
+root@ansible#   alias kgp='kubectl get pods'
+root@ansible#  alias kgs='kubectl get services'
+root@ansible#  alias ksgp='kubectl get pods -n kube-system'
+root@ansible#   alias kuc='kubectl config use-context
+root@ansible#  alias kuc='kubectl config use-context'
+
+root@ansible# source ~/.bashrc
+
+ ___        /\/|  _____             _   _
+ / _ \ _ __ |/\/  / ___ \  _ __ __ _| |_(_) ___  _ __  ___   ___ _   _ _ __
+| | | | '_ \ /_\ / / __| \| '__/ _` | __| |/ _ \| '_ \/ __| / __| | | | '__|
+| |_| | |_) / _ \ | (__   | | | (_| | |_| | (_) | | | \__ \ \__ \ |_| | |
+ \___/| .__/_/ \_\ \___| /|_|  \__,_|\__|_|\___/|_| |_|___/ |___/\__,_|_|
+      |_|         \_____/
+ _             _           _
+| | ___    ___| |_   _ ___| |_ ___ _ __
+| |/ _ \  / __| | | | / __| __/ _ \ '__|
+| |  __/ | (__| | |_| \__ \ ||  __/ |
+|_|\___|  \___|_|\__,_|___/\__\___|_|
+
+https://buildvirtual.net/deploy-a-kubernetes-cluster-using-ansible/
+
+creée un autre machine de méme ressource que le worker1 worker3-ajouter
+root@worker3-ajouter# vi /etc/sudoesers
+            dba ALL=(ALL) NOPASSWD:ALL
+:qw!
+root@ansible# ssh-copy-id ip_worker3-ajouter
+root@ansible# vi inventory/mycluster/hosts.yml
+
+all:
+  hosts:
+    node1:
+      ansible_host: 10.20.206.60
+      ip: 10.20.206.60
+      access_ip: 10.20.206.60
+      ansible_user: dba
+      ansible_connection: ssh
+      ansible_port: 22
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa
+    node2:
+      ansible_host: 10.20.206.61
+      ip: 10.20.206.61
+      access_ip: 10.20.206.61
+      ansible_user: dba
+      ansible_connection: ssh
+      ansible_port: 22
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa
+    node3:
+      ansible_host: 10.20.206.62
+      ip: 10.20.206.62
+      access_ip: 10.20.206.62
+      ansible_user: dba
+      ansible_connection: ssh
+      ansible_port: 22
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa
+    node4:
+      ansible_host: 10.20.206.77
+      ip: 10.20.206.77
+      access_ip: 10.20.206.77
+      ansible_user: dba
+      ansible_connection: ssh
+      ansible_port: 22
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa
+  children:
+    kube_control_plane:
+      hosts:
+        node1:
+    kube_node:
+      hosts:
+        node2:
+        node3:
+        node4:
+    etcd:
+      hosts:
+        node1:
+    k8s_cluster:
+      children:
+        kube_control_plane:
+        kube_node:
+    calico_rr:
+      hosts: {}
+:wq!
+root@ansible# cd kubespray
+root@ansible /kubespray# ansible-playbook -i inventory/mycluster/hosts.yml --become --become-user=root cluster.yml
+root@ansible /kubespray# ansible-playbook -i inventory/mycluster/hosts.yml --become --become-user=root cluster.yml
+root@ansible /kubespray# ansible-playbook -i inventory/mycluster/hosts.yml scale.yml --check 
+root@ansible /kubespray# ansible-playbook -i inventory/mycluster/hosts.yml scale.yml 
+-----------------------------pour supprimer le node4------------------------------------------
+ansible-playbook -i inventory/mycluster/hosts.yml --become --become-user=root remove-node.yml -u dba -b -e "node=node4"
+
+ ___  _                              _     _ _ _ _    /\/|  _____
+ / _ \| |__  ___  ___ _ ____   ____ _| |__ (_) (_) |_ |/\/  / ___ \
+| | | | '_ \/ __|/ _ \ '__\ \ / / _` | '_ \| | | | __| /_\ / / __| \
+| |_| | |_) \__ \  __/ |   \ V / (_| | |_) | | | | |_ / _ \ | (__   |
+ \___/|_.__/|___/\___|_|    \_/ \__,_|_.__/|_|_|_|\__/_/ \_\ \___| /
+                                                            \_____/
+      _                           _ _             _
+  ___| |_   _ __ ___   ___  _ __ (_) |_ ___  _ __(_)_ __   __ _
+ / _ \ __| | '_ ` _ \ / _ \| '_ \| | __/ _ \| '__| | '_ \ / _` |
+|  __/ |_  | | | | | | (_) | | | | | || (_) | |  | | | | | (_| |
+ \___|\__| |_| |_| |_|\___/|_| |_|_|\__\___/|_|  |_|_| |_|\__, |
+                                                          |___/
+root@ansible  /kubespray# vi inventory/mycluster/group_vars/k8s_cluster/addons.yml //copie le fichier de hamid addons.yml
+//ces sont les changements qui hamd a fait sur le fichier addons.yml
+# Nginx ingress controller deployment
+ingress_nginx_enabled: true
+ingress_nginx_host_network: true
+ingress_publish_status_address: ""
+ingress_nginx_nodeselector:
+  kubernetes.io/os: "linux"
+# ingress_nginx_tolerations:
+#   - key: "node-role.kubernetes.io/master"
+#     operator: "Equal"
+#     value: ""
+#     effect: "NoSchedule"
+ingress_nginx_namespace: "ingress-nginx"
+ingress_nginx_insecure_port: 80
+ingress_nginx_secure_port: 443
+root@ansible# ansible-playbook -i inventory/mycluster/hosts.yml -u dba -b cluster.yml  --tags=apps
+                  
+-----------------------------pour supprimer le node4------------------------------------------
+root@ansible /kubespray# ansible-playbook -i inventory/mycluster/hosts.yml --become --become-user=root remove-node.yml -u dba -b -e "node=node4"
+yes
+
+|_ _|_ __  ___| |_ __ _| | | __ _| |_(_) ___  _ __   | \ | | __ _(_)_ __ __  __
+ | || '_ \/ __| __/ _` | | |/ _` | __| |/ _ \| '_ \  |  \| |/ _` | | '_ \\ \/ /
+ | || | | \__ \ || (_| | | | (_| | |_| | (_) | | | | | |\  | (_| | | | | |>  <
+|___|_| |_|___/\__\__,_|_|_|\__,_|\__|_|\___/|_| |_| |_| \_|\__, |_|_| |_/_/\_\
+                                                            |___/
+
+root@ansible /kubespray#  ansible-playbook -b -i inventory/mycluster/hosts.yml -u dba -b cluster.yml --tags=apps
+ root@ansible /kubespray#  ansible-playbook -i inventory/mycluster/hosts.yml -k -k -b cluster.yml 
+root@ansible /kubespray# kubectl get pods -n kube-system
+root@ansible /kubespray# kubectl get ns                // pour afficher les namespaces 
+root@ansible /kubespray# kubectl get pod -n kube-system             // aicher moi les podes qui sont dans le namespace kube-system
+root@ansible /kubespray# kubectl get nodes        // pour afficher les nodes de cluster 
+ _           _        _       _   _               _          _
+(_)_ __  ___| |_ __ _| | __ _| |_(_) ___  _ __   | |__   ___| |_ __ ___
+| | '_ \/ __| __/ _` | |/ _` | __| |/ _ \| '_ \  | '_ \ / _ \ | '_ ` _ \
+| | | | \__ \ || (_| | | (_| | |_| | (_) | | | | | | | |  __/ | | | | | |
+|_|_| |_|___/\__\__,_|_|\__,_|\__|_|\___/|_| |_| |_| |_|\___|_|_| |_| |_|
+
+y a deux méthodes pour installer helm: nous on va utilise la 2éme methode par arkade
+
+root@ansible /kubespray# arkade get helm 
+root@ansible /kubespray#  mv /root/.arkade/bin/helm /usr/local/bin/
+root@ansible /kubespray# helm version 
+(_)_ __  ___| |_ __ _| | __ _| |_(_) ___  _ __
+| | '_ \/ __| __/ _` | |/ _` | __| |/ _ \| '_ \
+| | | | \__ \ || (_| | | (_| | |_| | (_) | | | |
+|_|_| |_|___/\__\__,_|_|\__,_|\__|_|\___/|_| |_|
+
+                                      _   _
+ _ __  _ __ ___  _ __ ___   ___ _   _| |_| |__   ___ _   _ ___
+| '_ \| '__/ _ \| '_ ` _ \ / _ \ | | | __| '_ \ / _ \ | | / __|
+| |_) | | | (_) | | | | | |  __/ |_| | |_| | | |  __/ |_| \__ \
+| .__/|_|  \___/|_| |_| |_|\___|\__,_|\__|_| |_|\___|\__,_|___/
+
+y a deux méthodes pour installer prometheus: par git et par helm nous on va utilise la 2éme methode par helm
+root@ansible # helm repo add prometheus-community \
+https://prometheus-community.github.io/helm-charts
+root@ansible # helm upgrade --install prometheus \
+prometheus-community/kube-prometheus-stack \
+--namespace monitoring \
+--create-namespace
+root@ansible # kubectl --namespace monitoring get pods -l "release=prometheus"
+
+Exposez « kubernetes dashboard » via un ingress
+____            _     _                         _
+|  _ \  __ _ ___| |__ | |__   ___   __ _ _ __ __| |
+| | | |/ _` / __| '_ \| '_ \ / _ \ / _` | '__/ _` |
+| |_| | (_| \__ \ | | | |_) | (_) | (_| | | | (_| |
+|____/ \__,_|___/_| |_|_.__/ \___/ \__,_|_|  \__,_|
+
+
+root@ansible # mkdir dashboard_ingress
+root@ansible #   chown -R dba:dba dashboard_ingress      //pour pour pouvoir travailler avec vscode
+root@ansible # cd dashboard_ingress;touch dashboard_ingress.yml;touch dashboard-cluster-role-binding.yml ;touch dashboard-serviceaccount.yml;touch service-account-token.yml
+root@ansible #   kubectl  create -f /home/dba/dashboard_ingress/dashboard-serviceceaccount.yml
+root@ansible # kubectl  create -f /home/dba/dashboard_ingress/dashboard-serviceaccount.yml
+root@ansible # kubectl create -f /home/dba/dashboard_ingress/dashboard-cluster-role-binding.yml
+root@ansible #  kubectl create -f /home/dba/dashboard_ingress/service-account-token.yml
+root@ansible #  kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep admin-user-token | awk '{print $1}')
+copie ton token dans un bloc-note
+ouvrir un browser et taper https://dashboard.10.20.206.60.nip.io:443 avec 10.20.206.60 l'ip de ton node master 
+coller ton token et c'est fait 
+
+root@ansible:/home/dba# source /usr/share/bash-completion/bash_completion    //auto_completion command 
+root@ansible:/home/dba#  mkdir  promeutheus_grafana_alertmanager_ingress
+root@ansible:/home/dba#   chown -R dba:dba promeutheus_grafana_alertmanager_ingress      //pour pour pouvoir travailler avec vscode
+root@ansible:/home/dba# cd promeutheus_grafana_alertmanager_ingress
+root@ansible:/home/dba/promeutheus_grafana_alertmanager_ingress# kubectl --namespace monitoring get svc  // pour afficher le namespaces et les ports 
+_ __  _ __ ___  _ __ ___   ___ _   _| |_| |__   ___ _   _ ___
+| '_ \| '__/ _ \| '_ ` _ \ / _ \ | | | __| '_ \ / _ \ | | / __|
+| |_) | | | (_) | | | | | |  __/ |_| | |_| | | |  __/ |_| \__ \
+| .__/|_|  \___/|_| |_| |_|\___|\__,_|\__|_| |_|\___|\__,_|___/
+|_|
+
+root@ansible:/home/dba/promeutheus_grafana_alertmanager_ingress#  touch promeutheus_ingress.yml;touch grafana_ingress.yml;touch alertmanager_ingress.yml
+root@ansible:/home/dba/promeutheus_grafana_alertmanager_ingress# vi promeutheus_ingress.yml
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:  
+  annotations:    
+    kubernetes.io/ingress.class: nginx
+  name: promeutheus
+  namespace: monitoring
+spec:  
+  rules:  
+  - host: promeutheus.10.20.206.60.nip.io
+    http:      
+      paths:      
+        - path: /
+          pathType: Prefix
+          backend:          
+            service: 
+              name: prometheus-kube-prometheus-prometheus
+              port: 
+                number: 9090
+:wq!
+root@ansible:/home/dba/promeutheus_grafana_alertmanager_ingress# kubectl apply -f promeutheus_ingress.yml
+https://promeutheus.10.20.206.60.nip.io:9090
+
+                 __
+  __ _ _ __ __ _ / _| __ _ _ __   __ _
+ / _` | '__/ _` | |_ / _` | '_ \ / _` |
+| (_| | | | (_| |  _| (_| | | | | (_| |
+ \__, |_|  \__,_|_|  \__,_|_| |_|\__,_|
+ |___/
+
+
+root@ansible:/home/dba/promeutheus_grafana_alertmanager_ingress#  vi grafana_ingress.yml
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:  
+  annotations:    
+    kubernetes.io/ingress.class: nginx
+  name: grafana
+  namespace: monitoring
+spec:  
+  rules:  
+  - host: grafana.10.20.206.60.nip.io
+    http:      
+      paths:      
+        - path: /
+          pathType: Prefix
+          backend:          
+            service: 
+              name: prometheus-grafana 
+              port: 
+                number: 80
+:wq!
+root@ansible:/home/dba/promeutheus_grafana_alertmanager_ingress# kubectl apply -f grafana_ingress.yml
+https://grafana.10.20.206.60.nip.io   //username: admin passwd:prom-operator  https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack dans le fichier value.yml
+
+__ _| | ___ _ __| |_ _ __ ___   __ _ _ __   __ _  __ _  ___ _ __
+ / _` | |/ _ \ '__| __| '_ ` _ \ / _` | '_ \ / _` |/ _` |/ _ \ '__|
+| (_| | |  __/ |  | |_| | | | | | (_| | | | | (_| | (_| |  __/ |
+ \__,_|_|\___|_|   \__|_| |_| |_|\__,_|_| |_|\__,_|\__, |\___|_|
+                                                   |___/
+
+root@ansible:/home/dba/promeutheus_grafana_alertmanager_ingress# vi alertmanager_ingress.yml
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:  
+  annotations:    
+    kubernetes.io/ingress.class: nginx
+  name: alertmanager
+  namespace: monitoring
+spec:  
+  rules:  
+  - host: alertmanager.10.20.206.60.nip.io
+    http:      
+      paths:      
+        - path: /
+          pathType: Prefix
+          backend:          
+            service: 
+              name: prometheus-kube-prometheus-alertmanager
+              port: 
+                number: 9093
+:wq!
+root@ansible:/home/dba/promeutheus_grafana_alertmanager_ingress# kubectl apply -f alertmanager_ingress.yml
+https://alertmanager.10.20.206.60.nip.io:9093
+
+
+
+_          _    _
+| |    ___ | | _(_)
+| |   / _ \| |/ / |
+| |__| (_) |   <| |
+|_____\___/|_|\_\_|
+
+
+
+root@ansible#  mkdir loki
+root@ansible# cd loki
+root@ansible# helm repo add grafana https://grafana.github.io/helm-charts
+root@ansible# helm repo update
+root@ansible#  helm search repo grafa
+root@ansible#  helm search repo grafana
+root@ansible# helm upgrade --install loki grafana/loki-stack --namespace monitoring
+root@ansible#  history
+root@ansible# kubectl get pods -n monitoring
+sur l'interface Grafana => configuration => add data stource => loki => url http://loki.monitoring:3100 => save & test
+
+
+ ____  ____    _    ____
+|  _ \| __ )  / \  / ___|
+| |_) |  _ \ / _ \| |
+|  _ <| |_) / ___ \ |___
+|_| \_\____/_/   \_\____|
+
+TP 10 
+-------------------------------------dev ------------------------------------------
+root@ansible# kubectl create ns ns-dev
+root@ansible# kubectl api-versions | grep rbac //pour vérifier l’activation RBAC 
+root@ansible# mkdir -p /home/dba/dev-Prod;cd /home/dba/dev-Prod;openssl genrsa -out dev.key 2048      //générer une clé
+root@ansible ~/.kube/users# # openssl req -new -key dev.key -out dev.csr  -subj "/CN=dev/O=dev"                                      //générer une demande de certificat
+root@ansible ~/.kube/users# mcert=$(cat /home/dba/dev-Prod/dev.csr | base64 | tr -d "\n")
+root@ansible ~/.kube/users# echo $mcert                               //récuperer la clé pour le mettre  dans user_signingrequest.yaml
+root@ansible ~/.kube/users# cd /home/dba/dev-Prod 
+root@ansible /home/dba/dev-Prod# vi user_dev_signingrequest.yaml
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+	name: dev
+spec:
+	request: [remplacez par csr_en_base_64]
+	signerName: kubernetes.io/kube-apiserver-client
+	#expirationSeconds: 157680000 # 5 ans (A partir de k8s 1.22)
+	usages:
+	- client auth
+:wq!
+root@ansible /home/dba/dev-Prod# cd ..
+root@ansible /home/dba# chown -R dba:dba dev-Prod ; cd -             //pour pouvoir enregistrer le manifeste 
+root@ansible /home/dba/dev-Prod# kubectl apply -f user_dev_signingrequest.yaml
+root@ansible /home/dba/dev-Prod# kubectl get csr
+root@ansible /home/dba/dev-Prod# kubectl certificate approve dev
+root@ansible /home/dba/dev-Prod# kubectl get csr dev -o jsonpath='{.status.certificate}'| base64 -d > /home/dba/dev-Prod/dev.crt
+root@ansible /home/dba/dev-Prod# kubectl config set-credentials dev \
+--client-certificate=/home/dba/dev-Prod/dev.crt\
+ --client-key=/home/dba/dev-Prod/dev.key
+root@ansible /home/dba/dev-Prod# kubectl config view --minify -o jsonpath='{.clusters[].name}'                          //pour afficher le nom de cluster 
+root@ansible /home/dba/dev-Prod#  kubectl config delete-context my-cluster-context //pour supprimer un contexte 
+root@ansible /home/dba/dev-Prod# kubectl config set-context dev@cluster.local \
+--cluster=cluster.local \
+--user=dev \
+--namespace=ns-dev
+root@ansible /home/dba/dev-Prod# kubectl config get-contexts
+root@ansible /home/dba/dev-Prod# kubectx dev@cluster.local
+root@ansible /home/dba/dev-Prod# kubectl get pods --all-namespaces   //ça marche pas à linterieur 
+root@ansible /home/dba/dev-Prod# kubectl config get-contexts
+root@ansible /home/dba/dev-Prod# kubectx kubernetes-admin@cluster.local
+root@ansible /home/dba/dev-Prod# kubectl get pods --all-namespaces   //maintant ça marche
+-------------------------------------------Création d’un rôle--------------------------------------------
+root@ansible# cd /home/dba/dev-Prod
+root@ansible /home/dba/dev-Prod# vi role-dev.yaml 
+ apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: ns-dev
+  name: role-dev
+rules:
+- apiGroups: ["", "extensions", "apps"]
+  resources: ["deployments", "replicasets", "pods", "statefulsets", "services" , "configmaps", "secrets", "ingresses", "endpoints", "cronjobs", "jobs", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+:wq!  
+root@ansible /home/dba/dev-Prod# kubectl apply -f role-dev.yaml
+root@ansible /home/dba/dev-Prod# vi role-dev-binding.yaml 
+apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: role-dev-binding
+  namespace: ns-dev
+subjects:
+- kind: User
+  name: dev
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: role-dev
+  apiGroup: rbac.authorization.k8s.io
+:wq!
+root@ansible /home/dba/dev-Prod# kubectl apply -f role-dev-binding.yaml 
+--------------------------------------------ops------------------------------------------------------
+root@ansible# kubectl create ns ns-ops
+root@ansible# cd /home/dba/dev-Prod;openssl genrsa -out ops.key 2048
+root@ansible ~/.kube/users# # openssl req -new -key ops.key -out ops.csr  -subj "/CN=ops/O=prod"                                      //générer une demande de certificat
+root@ansible ~/.kube/users# mcert=$(cat /home/dba/dev-Prod/ops.csr | base64 | tr -d "\n")
+root@ansible ~/.kube/users# echo $mcert                               //récuperer la clé pour le mettre  dans user_signingrequest.yaml
+root@ansible ~/.kube/users# cd /home/dba/dev-Prod 
+root@ansible /home/dba/dev-Prod# vi user_ops_signingrequest.yaml
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+	name: ops
+spec:
+	request: [remplacez par csr_en_base_64]
+	signerName: kubernetes.io/kube-apiserver-client
+	#expirationSeconds: 157680000 # 5 ans (A partir de k8s 1.22)
+	usages:
+	- client auth
+:wq!
+root@ansible /home/dba/dev-Prod# cd ..
+root@ansible /home/dba# chown -R dba:dba dev-Prod ; cd -             //pour pouvoir enregistrer le manifeste 
+root@ansible /home/dba/dev-Prod# kubectl apply -f user_ops_signingrequest.yaml
+root@ansible /home/dba/dev-Prod# kubectl get csr
+root@ansible /home/dba/dev-Prod# kubectl certificate approve ops
+root@ansible /home/dba/dev-Prod# 
+root@ansible /home/dba/dev-Prod#   kubectl get csr ops1 -o jsonpath='{.status.certificate}'| base64 -d > /home/dba/dev-Prod/ops1.crt 
+root@ansible /home/dba/dev-Prod# kubectl config set-credentials ops1 \
+--client-certificate=/home/dba/dev-Prod/ops1.crt\
+ --client-key=/home/dba/dev-Prod/ops1.key
+root@ansible /home/dba/dev-Prod# kubectl config view --minify -o jsonpath='{.clusters[].name}'                          //pour afficher le nom de cluster 
+root@ansible /home/dba/dev-Prod#  kubectl config delete-context my-cluster-context //pour supprimer un contexte 
+root@ansible /home/dba/dev-Prod# kubectl config set-context ops@cluster.local \
+--cluster=cluster.local \
+--user=ops \
+--namespace=ns-ops
+root@ansible /home/dba/dev-Prod# kubectl config get-contexts
+root@ansible /home/dba/dev-Prod# kubectx ops@cluster.local
+root@ansible /home/dba/dev-Prod# kubectl get pods --all-namespaces   //ça marche pas à linterieur 
+root@ansible /home/dba/dev-Prod# kubectl config get-contexts
+root@ansible /home/dba/dev-Prod# kubectx kubernetes-admin@cluster.local
+root@ansible /home/dba/dev-Prod# kubectl get pods --all-namespaces   //maintant ça marche
+-------------------------------------------Création d’un rôle--------------------------------------------
+root@ansible# cd /home/dba/dev-Prod
+root@ansible /home/dba/dev-Prod# vi role-ops.yaml 
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: ns-ops
+  name: ops
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+:wq!
+root@ansible /home/dba/dev-Prod# kubectl apply -f role-ops.yaml
+root@ansible /home/dba/dev-Prod# vi role-ops-binding.yaml 
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: role-ops-binding
+  namespace: ns-ops
+subjects:
+- kind: User
+  name: ops
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: role-ops
+  apiGroup: rbac.authorization.k8s.io
+:wq!
+root@ansible /home/dba/dev-Prod# kubectl apply -f role-dev-binding.yaml 
+
+
+--------------------------------veriication-------------------------------
+root@ansible /home/dba/dev-Prod# kubectl config get-contexts
+root@ansible /home/dba/dev-Prod# kubectx dev@cluster.local
+root@ansible /home/dba/dev-Prod# kubectl auth can-i --list
+root@ansible /home/dba/dev-Prod# kubectx ops@cluster.local
+root@ansible /home/dba/dev-Prod# kubectl auth can-i --list
+root@ansible /home/dba/dev-Prod# kubectx dev@cluster.local
+root@ansible /home/dba/dev-Prod# kubectl create deployment nginx --image nginx
+root@ansible /home/dba/dev-Prod# kubectl delete deployments nginx
+root@ansible /home/dba/dev-Prod# kubectl  config get-contexts
+root@ansible /home/dba/dev-Prod# kubectl auth can-i --list
+root@ansible /home/dba/dev-Prod# kubectx ops@cluster.local
+root@ansible /home/dba/dev-Prod# kubectl create deployment nginx --image nginx
+root@ansible /home/dba/dev-Prod# kubectl delete deployments nginx
+root@ansible /home/dba/dev-Prod# kubectl  config get-contexts
+root@ansible /home/dba/dev-Prod# kubectl auth can-i --list
+ ____             _       _                           _
+|  _ \  ___ _ __ | | ___ (_) ___ _ __ ___   ___ _ __ | |_
+| | | |/ _ \ '_ \| |/ _ \| |/ _ \ '_ ` _ \ / _ \ '_ \| __|
+| |_| |  __/ |_) | | (_) | |  __/ | | | | |  __/ | | | |_
+|____/ \___| .__/|_|\___/|_|\___|_| |_| |_|\___|_| |_|\__|
+           |_|
+     _                 _
+ ___(_)_ __ ___  _ __ | | ___
+/ __| | '_ ` _ \| '_ \| |/ _ \
+\__ \ | | | | | | |_) | |  __/
+|___/_|_| |_| |_| .__/|_|\___|
+                |_|
+root@ansible #
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+ ____             _       _                           _
+|  _ \  ___ _ __ | | ___ (_) ___ _ __ ___   ___ _ __ | |_
+| | | |/ _ \ '_ \| |/ _ \| |/ _ \ '_ ` _ \ / _ \ '_ \| __|
+| |_| |  __/ |_) | | (_) | |  __/ | | | | |  __/ | | | |_
+|____/ \___| .__/|_|\___/|_|\___|_| |_| |_|\___|_| |_|\__|
+           |_|
+                 _ _   _       _   _
+ _ __ ___  _   _| | |_(_)     | |_(_) ___ _ __ ___
+| '_ ` _ \| | | | | __| |_____| __| |/ _ \ '__/ __|
+| | | | | | |_| | | |_| |_____| |_| |  __/ |  \__ \
+|_| |_| |_|\__,_|_|\__|_|      \__|_|\___|_|  |___/
+
+				
+
+
+
+
+
+
+
+
+
+
+
