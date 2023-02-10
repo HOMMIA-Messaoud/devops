@@ -1,0 +1,7 @@
+Dashboard
+création d'un ingress : dashboard_ingress.yml
+création du token :
+ - créer un service account : dashboard-serviceaccount.yml
+ - créer un role binding : dashboard-cluster-role-binding.yml
+ - génération du token : service-account-token.yml
+ - cmd de récupération du token : kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep admin-user-token | awk '{print $1}')
