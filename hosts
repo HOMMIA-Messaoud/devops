@@ -1,0 +1,19 @@
+ansible ansible_host=10.20.206.59 ansible_connection=local
+master  ansible_host=10.20.206.60 ansible_connection=ssh
+worker1 ansible_host=10.20.206.61 ansible_connection=ssh
+worker2 ansible_host=10.20.206.62 ansible_connection=ssh
+#worker3 ansible_host=10.20.206.77
+[cible]
+master
+worker1
+worker2
+#worker3
+
+ 
+
+[all:vars]
+ansible_port=22
+ansible_user=dba
+ansible_connection=ssh
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+#ansible_ssh_common_args='-o StrictHostKeyChecking=no

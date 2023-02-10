@@ -1,0 +1,9 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: ns-dev
+  name: dev-manager
+rules:
+- apiGroups: ["*"]
+  resources: ["replicasets", "pods", "statefulsets", "services" , "configmaps", "secrets", "ingresses", "endpoints", "cronjobs", "jobs", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
