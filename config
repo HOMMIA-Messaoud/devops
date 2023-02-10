@@ -1,0 +1,33 @@
+Host master
+    User dba
+    Port 22
+    IdentityFile ~/.ssh/id_rsa
+    LogLevel INFO
+    Compression yes
+    ForwardAgent yes
+    ForwardX11 yes
+Host worker1
+    User dba
+    Port 22
+    IdentityFile ~/.ssh/id_rsa
+    LogLevel INFO
+    Compression yes
+    ForwardAgent yes
+    ForwardX11 yes
+Host worker2
+    User dba
+    Port 22
+    IdentityFile ~/.ssh/id_rsa
+    LogLevel INFO
+    Compression yes
+    ForwardAgent yes
+    ForwardX11 yes
+Host worker3
+    User dba
+    Port 22
+    IdentityFile ~/.ssh/id_rsa
+    LogLevel INFO
+    Compression yes
+    ForwardAgent yes
+    ForwardX11 yes
+
